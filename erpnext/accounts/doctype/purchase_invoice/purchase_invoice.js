@@ -1,6 +1,6 @@
 // Copyright (c) 2015, Frappe Technologies Pvt. Ltd. and Contributors
 // License: GNU General Public License v3. See license.txt
-
+// update for custom services
 frappe.provide("erpnext.accounts");
 {% include 'erpnext/public/js/controllers/buying.js' %};
 
@@ -330,6 +330,23 @@ erpnext.accounts.PurchaseInvoice = erpnext.buying.BuyingController.extend({
 			frm: cur_frm
 		})
 	},
+
+	asset: function(frm, cdt, cdn) {
+		var row = locals[cdt][cdn];
+		if(row.asset) {
+			frappe.call({
+				method: "erpnext.assets.doctype.asset_category.asset_category.get_asset_category_account",
+				args: {
+					"asset": row.asset,
+					"fieldname": "fixed_asset_account",
+					"account": row.expense_account
+				},
+				callback: function(r, rt) {
+					frappe.model.set_value(cdt, cdn, "expense_account", r.message);
+				}
+			})
+		}
+	}
 });
 
 cur_frm.script_manager.make(erpnext.accounts.PurchaseInvoice);
@@ -413,7 +430,19 @@ cur_frm.fields_dict['select_print_heading'].get_query = function(doc, cdt, cdn) 
 cur_frm.set_query("expense_account", "items", function(doc) {
 	return {
 		query: "erpnext.controllers.queries.get_expense_account",
-		filters: {'company': doc.company }
+		filters: {'company': doc.company}
+	}
+});
+
+cur_frm.set_query("asset", "items", function(doc, cdt, cdn) {
+	var d = locals[cdt][cdn];
+	return {
+		filters: {
+			'item_code': d.item_code,
+			'docstatus': 1,
+			'company': doc.company,
+			'status': 'Submitted'
+		}
 	}
 });
 
@@ -466,6 +495,296 @@ cur_frm.cscript.select_print_heading = function(doc,cdt,cdn){
 		cur_frm.pformat.print_heading = __("Purchase Invoice");
 }
 
+frappe.ui.form.on("Purchase Taxes and Charges",{
+	tax_amount:function(frm ,cdt ,cdn){
+		var local = frappe.model.get_doc(cdt,cdn)
+		var rate = 1
+		var i ;
+		if (frm.doc.conversion_rate > 1 ){
+			rate = frm.doc.conversion_rate ;
+		}
+		var item_count = 0;
+		for (i=0 ; i < frm.doc.items.length ; i++){
+			item_count += frm.doc.items[i].qty
+		}
+		var price = local.tax_amount * rate
+		var avrige = price / item_count
+		var real_price ;
+		for (i=0 ; i < frm.doc.items.length ; i++){
+			real_price = frm.doc.items[i].rate *rate
+			frappe.model.set_value(cdt,cdn,"shipping_serices",avrige)
+			frm.doc.items[i].shipping_serices = avrige
+			frm.doc.items[i].real_price = real_price + avrige
+		}
+
+	},
+
+})
+frappe.ui.form.on("Purchase Invoice Item",{
+
+	customs_servisec_total: function(frm ,cdt ,cdn){
+		console.log("here")
+
+	},
+	rate:function(frm ,cdt ,cdn){
+		var local = frappe.model.get_doc(cdt,cdn)
+		var sh_services = local.shipping_serices
+		var in_services = local.insurance_services
+		var co_services = local.customs_servisec_total
+		var rate = 1
+		if (frm.doc.conversion_rate > 1 ){
+			rate = frm.doc.conversion_rate ;
+		}
+		var price  = local.rate * rate
+		var real_price = price + sh_services + in_services + co_services
+		frappe.model.set_value(cdt,cdn,"real_price",real_price)
+
+
+
+	},
+
+	qty:function(frm ,cdt ,cdn){
+		var sh_services = 0 ;
+		var in_services = 0 ;
+		var rate = 1
+		var local = frappe.model.get_doc(cdt,cdn);
+		var qty_l = 0 ;
+		var i
+	  	for (i=0 ; i < frm.doc.items.length ; i++){
+			qty_l += frm.doc.items[i].qty
+		}
+		var co_services = frm.doc.customs_services_total / qty_l
+		if (frm.doc.conversion_rate > 1 ){
+			rate = frm.doc.conversion_rate ;
+		}
+		for (i=0 ; i < frm.doc.items.length ; i++){
+			if(frm.doc.shipping_services){
+				 sh_services = frm.doc.shipping_services[0].rate / qty_l ;
+				 frm.doc.items[i].shipping_serices = sh_services
+				 frappe.model.set_value(cdt,cdn,"shipping_serices",sh_services)
+
+	      }
+
+	       if(frm.doc.insurance_services){
+				 in_services = frm.doc.insurance_services[0].rate / qty_l ;
+				 frm.doc.items[i].insurance_services = in_services
+				 frappe.model.set_value(cdt,cdn,"insurance_services",in_services)
+
+	      }
+	      var price  = local.rate * rate ;
+		var real_price = price + sh_services + in_services + co_services ;
+		frm.doc.items[i].real_price= real_price
+		frm.doc.items[i].customs_servisec_total= co_services
+		// frappe.model.set_value(cdt,cdn,"real_price",real_price)
+		// frappe.model.set_value(cdt,cdn,"customs_servisec_total",co_services)
+		}
+
+
+
+
+
+
+
+	}
+
+
+}
+
+	)
+
+frappe.ui.form.on("CUSTOMS SERVICES", {
+	local_extract:function(frm ,cdt ,cdn){
+		var local = frappe.model.get_doc(cdt,cdn);
+		var item_count = 0;
+		frm.set_value("local_extract",local.local_extract)
+		var total = local.customs_clearance+local.domestic_shipping+local.perks
+		frappe.model.set_value(cdt,cdn,"total",total)
+
+
+		var customs_services = 0
+		var i ;
+		for(i =0 ; i < frm.doc.customs_services.length ; i++){
+			customs_services += frm.doc.customs_services[i].total
+		}
+
+		for (i=0 ; i < frm.doc.items.length ; i++){
+			item_count += frm.doc.items[i].qty
+		}
+		var cu_ser = customs_services/item_count
+		var rate = 1
+		if (frm.doc.conversion_rate > 1 ){
+			rate = frm.doc.conversion_rate ;
+		}
+
+		for(i =0 ; i<frm.doc.items.length ; i++){
+			frm.doc.items[i].customs_servisec_total = cu_ser
+			var real = frm.doc.items[i].rate *rate
+			frm.doc.items[i].real_price =real + frm.doc.items[i].customs_servisec_total+frm.doc.items[i].shipping_serices+frm.doc.items[i].insurance_services
+		}
+		frm.set_value("customs_services_total",customs_services)
+		frm.set_value("customs_clearance",customs_services)
+		frm.refresh_field("customs_services_total")
+	},
+	customs_clearance:function(frm ,cdt ,cdn){
+		var local = frappe.model.get_doc(cdt,cdn);
+		var item_count = 0;
+		var total = local.customs_clearance+local.domestic_shipping+local.perks
+		frappe.model.set_value(cdt,cdn,"total",total)
+
+
+		var customs_services = 0
+		var i ;
+		for(i =0 ; i < frm.doc.customs_services.length ; i++){
+			customs_services += frm.doc.customs_services[i].total
+		}
+
+		for (i=0 ; i < frm.doc.items.length ; i++){
+			item_count += frm.doc.items[i].qty
+		}
+		var cu_ser = customs_services/item_count
+		var rate = 1
+		if (frm.doc.conversion_rate > 1 ){
+			rate = frm.doc.conversion_rate ;
+		}
+
+		for(i =0 ; i<frm.doc.items.length ; i++){
+			frm.doc.items[i].customs_servisec_total = cu_ser
+			var real = frm.doc.items[i].rate *rate
+			frm.doc.items[i].real_price =real + frm.doc.items[i].customs_servisec_total+frm.doc.items[i].shipping_serices+frm.doc.items[i].insurance_services
+		}
+		frm.set_value("customs_services_total",customs_services)
+		frm.set_value("customs_clearance",customs_services)
+		frm.refresh_field("customs_services_total")
+	},
+	domestic_shipping:function(frm ,cdt ,cdn){
+		var local = frappe.model.get_doc(cdt,cdn);
+		var item_count = 0;
+		var total = local.customs_clearance+local.domestic_shipping+local.perks
+		frappe.model.set_value(cdt,cdn,"total",total)
+
+
+		var customs_services = 0
+		var i ;
+		for(i =0 ; i < frm.doc.customs_services.length ; i++){
+			customs_services += frm.doc.customs_services[i].total
+		}
+
+		for (i=0 ; i < frm.doc.items.length ; i++){
+			item_count += frm.doc.items[i].qty
+		}
+		var cu_ser = customs_services/item_count
+		var rate = 1
+		if (frm.doc.conversion_rate > 1 ){
+			rate = frm.doc.conversion_rate ;
+		}
+
+		for(i =0 ; i<frm.doc.items.length ; i++){
+			frm.doc.items[i].customs_servisec_total = cu_ser
+			var real = frm.doc.items[i].rate *rate
+			frm.doc.items[i].real_price =real + frm.doc.items[i].customs_servisec_total+frm.doc.items[i].shipping_serices+frm.doc.items[i].insurance_services
+		}
+		frm.set_value("customs_services_total",customs_services)
+		frm.set_value("customs_clearance",customs_services)
+		frm.refresh_field("customs_services_total")
+	},
+	perks:function(frm ,cdt ,cdn){
+		var local = frappe.model.get_doc(cdt,cdn);
+		var item_count = 0;
+		var total = local.customs_clearance+local.domestic_shipping+local.perks
+		frappe.model.set_value(cdt,cdn,"total",total)
+
+
+		var customs_services = 0
+		var i ;
+		for(i =0 ; i < frm.doc.customs_services.length ; i++){
+			customs_services += frm.doc.customs_services[i].total
+		}
+
+		for (i=0 ; i < frm.doc.items.length ; i++){
+			item_count += frm.doc.items[i].qty
+		}
+		var cu_ser = customs_services/item_count
+		var rate = 1
+		if (frm.doc.conversion_rate > 1 ){
+			rate = frm.doc.conversion_rate ;
+		}
+
+		for(i =0 ; i<frm.doc.items.length ; i++){
+			frm.doc.items[i].customs_servisec_total = cu_ser
+			var real = frm.doc.items[i].rate *rate
+			frm.doc.items[i].real_price =real + frm.doc.items[i].customs_servisec_total+frm.doc.items[i].shipping_serices+frm.doc.items[i].insurance_services
+		}
+		frm.set_value("customs_services_total",customs_services)
+		frm.set_value("customs_clearance",customs_services)
+		frm.refresh_field("customs_services_total")
+	},
+
+
+
+
+
+})
+
+frappe.ui.form.on("Insurance services", {
+	rate : function(frm ,cdt ,cdn){
+		var local = frappe.model.get_doc(cdt,cdn);
+		var cost_value = local.rate
+		var item_count = 0;
+		var i;
+		var rate = 1
+		if (frm.doc.conversion_rate > 1 ){
+			rate = frm.doc.conversion_rate ;
+		}
+		if (frm.doc.items){
+		for (i=0 ; i < frm.doc.items.length ; i++){
+			item_count += frm.doc.items[i].qty
+		}
+
+
+
+		}
+		var avrige = cost_value/item_count
+
+		for (i=0 ; i < frm.doc.items.length ; i++){
+			frm.doc.items[i].insurance_services = avrige
+			var price = frm.doc.items[i].rate * rate
+			frm.doc.items[i].real_price = price +frm.doc.items[i].customs_servisec_total+frm.doc.items[i].shipping_serices+frm.doc.items[i].insurance_services
+		}
+
+	}
+
+})
+
+frappe.ui.form.on("Shipping services", {
+	rate : function(frm ,cdt ,cdn){
+		var local = frappe.model.get_doc(cdt,cdn);
+		var cost_value = local.rate
+		var item_count = 0;
+		var i;
+		var rate = 1
+		if (frm.doc.conversion_rate > 1 ){
+			rate = frm.doc.conversion_rate ;
+		}
+		if (frm.doc.items){
+		for (i=0 ; i < frm.doc.items.length ; i++){
+			item_count += frm.doc.items[i].qty
+		}
+
+
+
+		}
+		var avrige = cost_value/item_count
+		var price ;
+		for (i=0 ; i < frm.doc.items.length ; i++){
+			frm.doc.items[i].shipping_serices = avrige
+			price = frm.doc.items[i].rate * rate
+			frm.doc.items[i].real_price = price +frm.doc.items[i].shipping_serices+ frm.doc.items[i].customs_servisec_total +frm.doc.items[i].insurance_services
+		}
+
+	}
+
+})
+
 frappe.ui.form.on("Purchase Invoice", {
 	setup: function(frm) {
 		frm.custom_make_buttons = {
@@ -506,6 +825,93 @@ frappe.ui.form.on("Purchase Invoice", {
 		erpnext.queries.setup_queries(frm, "Warehouse", function() {
 			return erpnext.queries.warehouse(frm.doc);
 		});
+	},
+	shipping_included:function(frm){
+
+		var rate = 1;
+		if(frm.doc.conversion_rate > 1 ){
+			rate = frm.doc.conversion_rate ;
+		}
+		if (frm.doc.shipping_included == 1){
+			frm.doc.insurance_services = [];
+			frm.refresh_field("insurance_services")
+			var i ;
+			for(i =0 ; i < frm.doc.items.length ; i++){
+
+				frm.doc.items[i].shipping_serices = 0
+				frm.doc.items[i].insurance_services= 0
+				frm.doc.items[i].real_price = (frm.doc.items[i].rate * rate) + frm.doc.items[i].customs_servisec_total
+			}
+			frm.refresh_field("items")
+
+		}
+	},
+	customs_clearance: function(frm){
+		var total_fee  = frm.doc.customs_clearance + frm.doc.domestic_shipping + frm.doc.perks
+		frm.set_value("customs_services_total" , total_fee)
+		frm.refresh_field("customs_services_total")
+
+	},
+	domestic_shipping: function(frm){
+		var total_fee  = frm.doc.customs_clearance + frm.doc.domestic_shipping + frm.doc.perks
+		frm.set_value("customs_services_total" , total_fee)
+		frm.refresh_field("customs_services_total")
+
+	},
+	perks: function(frm){
+		var total_fee  = frm.doc.customs_clearance + frm.doc.domestic_shipping + frm.doc.perks
+		frm.set_value("customs_services_total" , total_fee)
+		frm.refresh_field("customs_services_total")
+
+	},
+	customs_services_total: function(frm){
+		// var item_count = 0
+		var i;
+		var rate = 1
+		if (frm.doc.conversion_rate > 1 ){
+			price = frm.doc.conversion_rate ;
+		}
+		// if (frm.doc.items){
+		// for (i=0 ; i < frm.doc.items.length ; i++){
+		// 	item_count += frm.doc.items[i].qty
+		// }
+		// CUSTOMS SERVICES
+		//
+		//
+		// }
+		// var avrige = frm.doc.customs_services_total/item_count
+		var price ;
+		// for (i=0 ; i < frm.doc.items.length ; i++){
+		// 	frm.doc.items[i].customs_servisec_total = avrige
+		// 	price = frm.doc.items[i].rate * rate
+		// 	// frm.doc.items[i].real_price = price + frm.doc.items[i].shipping_serices+frm.doc.items[i].customs_servisec_total +frm.doc.items[i].insurance_services
+		// }
+
+		var item_count = 0
+		for (i=0 ; i < frm.doc.items.length ; i++){
+	      var pri = frm.doc.items[i].rate 
+	      if (frm.doc.conversion_rate > 1 ){
+			pri = frm.doc.items[i].base_rate ;
+		}
+				var pri_en = frm.doc.base_grand_total
+				var neg =frm.doc.customs_services_total/pri_en
+				var fin = pri * neg
+				var su = fin/ frm.doc.items[i].qty
+				var conv_fac = 1
+				//frm.doc.set_value("update_stock",0)
+				if( frm.doc.items[i].conversion_factor){
+					conv_fac =frm.doc.items[i].conversion_factor;
+					console.log(conv_fac)
+				
+					frm.doc.items[i].real_price = (pri / conv_fac ) +(fin/conv_fac)
+				}else{
+								frm.doc.items[i].real_price = pri + fin
+								console.log(frm.doc.items[i].real_price)
+				}
+
+		}
+		frm.refresh_field("items")
+		frm.refresh_field("update_stock")
 	},
 
 	is_subcontracted: function(frm) {

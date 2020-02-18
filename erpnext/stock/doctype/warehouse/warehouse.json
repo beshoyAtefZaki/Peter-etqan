@@ -5,12 +5,14 @@
  "description": "A logical Warehouse against which stock entries are made.",
  "doctype": "DocType",
  "document_type": "Setup",
+ "engine": "InnoDB",
  "field_order": [
   "warehouse_detail",
   "warehouse_name",
   "is_group",
   "company",
   "disabled",
+  "serializer",
   "column_break_4",
   "account",
   "warehouse_type",
@@ -222,12 +224,17 @@
    "fieldtype": "Link",
    "label": "Warehouse Type",
    "options": "Warehouse Type"
+  },
+  {
+   "fieldname": "serializer",
+   "fieldtype": "Data",
+   "label": "Serializer"
   }
  ],
  "icon": "fa fa-building",
  "idx": 1,
- "modified": "2019-05-22 11:17:23.357490",
- "modified_by": "Administrator",
+ "modified": "2020-01-16 13:17:14.643095",
+ "modified_by": "abogamil@alfahhad.com.sa",
  "module": "Stock",
  "name": "Warehouse",
  "owner": "Administrator",
@@ -281,6 +288,7 @@
  ],
  "quick_entry": 1,
  "show_name_in_global_search": 1,
+ "sort_field": "modified",
  "sort_order": "DESC",
  "title_field": "warehouse_name"
 }

@@ -69,6 +69,8 @@ class PurchaseInvoice(BuyingController):
 		super(PurchaseInvoice, self).validate()
 
 		# apply tax withholding only if checked and applicable
+		if not self.shipping_included :
+			self.update_stock = 0
 		self.set_tax_withholding()
 
 		if not self.is_return:
@@ -324,7 +326,11 @@ class PurchaseInvoice(BuyingController):
 
 	def on_submit(self):
 		super(PurchaseInvoice, self).on_submit()
-
+		if self.shipping_included == 0 :
+			self.update_stock = 0
+		if self.local_extract:
+			create_new_stock_entry(self.items,self.set_warehouse)
+			create_new_sales_invoice( self.local_extract , self.posting_date ,self.customs_services_total)
 		self.check_prev_docstatus()
 		self.update_status_updater_args()
 		self.update_prevdoc_status()
@@ -1022,3 +1028,38 @@ def block_invoice(name, hold_comment):
 def make_inter_company_sales_invoice(source_name, target_doc=None):
 	from erpnext.accounts.doctype.sales_invoice.sales_invoice import make_inter_company_transaction
 	return make_inter_company_transaction("Purchase Invoice", source_name, target_doc)
+
+@frappe.whitelist()
+def create_new_sales_invoice(supplier,date,amount):
+
+    #import datetime
+
+	doc                   = frappe.new_doc("Purchase Invoice")
+	doc.company           = frappe.db.get_single_value("Global Defaults", "default_company")
+	doc.series            = "ACC-PINV-.YYYY.-"
+	doc.supplier 		  = supplier
+	doc.posting_date      = date
+	doc.append("items" ,{"item_code" : "50005000" ,
+	"item_name":"Custom Service" , "qty":"1" , "uom":"Nos" ,"rate":amount })
+	doc.insert()
+	doc.save()
+	frappe.db.commit()
+@frappe.whitelist()
+def create_new_stock_entry(items , whouse):
+	doc                   = frappe.new_doc("Stock Entry")
+	doc.company           = frappe.db.get_single_value("Global Defaults", "default_company")
+	doc.naming_series     = "MAT-STE-.YYYY.-"
+	doc.stock_entry_type  = "Material Receipt"
+	doc.to_warehouse 	  = whouse
+	for item in items:
+		doc.append("items" ,{"item_code" : item.item_code ,
+							 "qty":item.stock_qty or item.qty ,
+							 "uom":item.stock_uom , "stock_uom":item.stock_uom ,
+							 "conversion_factor":1 ,"transfer_qty":1 ,
+							 "basic_rate":item.real_price} )
+	doc.insert()
+	doc.save()
+	frappe.db.commit()
+
+
+	pass

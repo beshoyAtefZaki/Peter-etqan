@@ -12,6 +12,10 @@ def get_data():
 					"onboard": 1,
 				},
 				{
+					"type":"doctype",
+					"name":"Employee contract"
+					},
+				{
 					"type": "doctype",
 					"name": "Employment Type",
 				},

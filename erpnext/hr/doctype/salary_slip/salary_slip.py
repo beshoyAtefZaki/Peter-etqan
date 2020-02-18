@@ -5,7 +5,7 @@ from __future__ import unicode_literals
 import frappe, erpnext
 import datetime, math
 
-from frappe.utils import add_days, cint, cstr, flt, getdate, rounded, date_diff, money_in_words
+from frappe.utils import add_days, cint, cstr, flt, getdate, rounded, date_diff, money_in_words, getdate
 from frappe.model.naming import make_autoname
 
 from frappe import msgprint, _
@@ -186,7 +186,8 @@ class SalarySlip(TransactionBase):
 			joining_date, relieving_date = frappe.get_cached_value("Employee", self.employee,
 				["date_of_joining", "relieving_date"])
 
-		working_days = date_diff(self.end_date, self.start_date) + 1
+		self.month_cal_days = date_diff(self.end_date, self.start_date) + 1
+		working_days = 30
 		if for_preview:
 			self.total_working_days = working_days
 			self.payment_days = working_days
@@ -227,7 +228,10 @@ class SalarySlip(TransactionBase):
 					.format(relieving_date))
 
 		payment_days = date_diff(end_date, start_date) + 1
-
+		#if (payment_days == 29) or (payment_days == 31) :
+			#payment_days = 30
+		if payment_days == self.month_cal_days:
+			payment_days= 30 
 		if not cint(frappe.db.get_value("HR Settings", None, "include_holidays_in_total_working_days")):
 			holidays = self.get_holidays_for_employee(start_date, end_date)
 			payment_days -= len(holidays)
@@ -255,19 +259,16 @@ class SalarySlip(TransactionBase):
 		for d in range(working_days):
 			dt = add_days(cstr(getdate(self.start_date)), d)
 			leave = frappe.db.sql("""
-				SELECT t1.name,
-					CASE WHEN t1.half_day_date = %(dt)s or t1.to_date = t1.from_date
-					THEN t1.half_day else 0 END
-				FROM `tabLeave Application` t1, `tabLeave Type` t2
-				WHERE t2.name = t1.leave_type
-				AND t2.is_lwp = 1
-				AND t1.docstatus = 1
-				AND t1.employee = %(employee)s
-				AND CASE WHEN t2.include_holiday != 1 THEN %(dt)s not in ('{0}') and %(dt)s between from_date and to_date and ifnull(t1.salary_slip, '') = ''
+				select t1.name, t1.half_day
+				from `tabLeave Application` t1, `tabLeave Type` t2
+				where t2.name = t1.leave_type
+				and t2.is_lwp = 1
+				and t1.docstatus = 1
+				and t1.employee = %(employee)s
+				and CASE WHEN t2.include_holiday != 1 THEN %(dt)s not in ('{0}') and %(dt)s between from_date and to_date and ifnull(t1.salary_slip, '') = ''
 				WHEN t2.include_holiday THEN %(dt)s between from_date and to_date and ifnull(t1.salary_slip, '') = ''
 				END
 				""".format(holidays), {"employee": self.employee, "dt": dt})
-
 			if leave:
 				lwp = cint(leave[0][1]) and (lwp + 0.5) or (lwp + 1)
 		return lwp

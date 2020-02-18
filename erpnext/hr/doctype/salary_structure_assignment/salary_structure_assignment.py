@@ -12,7 +12,8 @@ class DuplicateAssignment(frappe.ValidationError): pass
 
 class SalaryStructureAssignment(Document):
 	def validate(self):
-		self.validate_dates()
+		pass
+		#self.validate_dates()
 
 	def validate_dates(self):
 		joining_date, relieving_date = frappe.db.get_value("Employee", self.employee,

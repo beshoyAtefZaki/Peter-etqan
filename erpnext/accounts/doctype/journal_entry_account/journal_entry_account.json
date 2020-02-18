@@ -34,6 +34,7 @@
   "project",
   "col_break3",
   "is_advance",
+  "description",
   "user_remark",
   "against_account"
  ],
@@ -268,11 +269,16 @@
    "fieldtype": "Link",
    "label": "Bank Account",
    "options": "Bank Account"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Text",
+   "label": "Description"
   }
  ],
  "idx": 1,
  "istable": 1,
- "modified": "2019-10-02 12:23:21.693443",
+ "modified": "2020-01-15 11:01:34.575412",
  "modified_by": "Administrator",
  "module": "Accounts",
  "name": "Journal Entry Account",
