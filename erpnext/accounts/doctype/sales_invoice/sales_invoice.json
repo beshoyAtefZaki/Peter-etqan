@@ -210,7 +210,7 @@
    "no_copy": 1,
    "oldfieldname": "naming_series",
    "oldfieldtype": "Select",
-   "options": "ACC-SINV-.YYYY.-\nFG-.YYYY.-\nJSC-.YYYY.-\nRSC-.YYYY.-",
+   "options": "ACC-SINV-.YYYY.-\nMAIN-FG-.YYYY.-\nJSC-.YYYY.-\nRSC-.YYYY.-\nWAG-FG-.YYYY.-\nWAG-SC-YYYY-.",
    "print_hide": 1,
    "reqd": 1,
    "set_only_once": 1
@@ -1581,7 +1581,7 @@
  "icon": "fa fa-file-text",
  "idx": 181,
  "is_submittable": 1,
- "modified": "2020-02-03 13:21:25.558460",
+ "modified": "2020-03-10 10:39:45.638266",
  "modified_by": "Administrator",
  "module": "Accounts",
  "name": "Sales Invoice",

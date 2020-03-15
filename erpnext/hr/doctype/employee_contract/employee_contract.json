@@ -173,6 +173,7 @@
    "fieldtype": "Link",
    "in_global_search": 1,
    "in_preview": 1,
+   "in_standard_filter": 1,
    "label": "Employee",
    "options": "Employee"
   },
@@ -234,7 +235,7 @@
   }
  ],
  "is_submittable": 1,
- "modified": "2020-01-25 20:48:25.482879",
+ "modified": "2020-03-11 17:47:54.293844",
  "modified_by": "Administrator",
  "module": "HR",
  "name": "Employee contract",

@@ -13,7 +13,7 @@ def get_data():
 			},
 			{
 				'label': _('Lifecycle'),
-				'items': ['Employee Transfer', 'Employee Promotion', 'Employee Separation']
+				'items': ['Employee contract','Employee Transfer', 'Employee Promotion', 'Employee Separation']
 			},
 			{
 				'label': _('Shift'),

@@ -15,6 +15,8 @@
   "section_break_8",
   "branch",
   "department",
+  "has_gl",
+  "has_pay",
   "column_break_10",
   "designation",
   "number_of_employees",
@@ -35,6 +37,7 @@
   "project",
   "dimension_col_break",
   "cost_center",
+  "resevable_acoount",
   "account",
   "payment_account",
   "amended_from",
@@ -256,11 +259,32 @@
   {
    "fieldname": "column_break_33",
    "fieldtype": "Column Break"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "resevable_acoount",
+   "fieldtype": "Link",
+   "label": "Resevable Acoount",
+   "options": "Account"
+  },
+  {
+   "allow_on_submit": 1,
+   "default": "0",
+   "fieldname": "has_gl",
+   "fieldtype": "Check",
+   "label": "has_gl"
+  },
+  {
+   "allow_on_submit": 1,
+   "default": "0",
+   "fieldname": "has_pay",
+   "fieldtype": "Check",
+   "label": "has_pay"
   }
  ],
  "icon": "fa fa-cog",
  "is_submittable": 1,
- "modified": "2019-09-12 15:46:31.436381",
+ "modified": "2020-03-11 10:19:07.852297",
  "modified_by": "Administrator",
  "module": "HR",
  "name": "Payroll Entry",

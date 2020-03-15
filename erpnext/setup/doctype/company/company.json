@@ -58,6 +58,7 @@
   "default_deferred_revenue_account",
   "default_deferred_expense_account",
   "default_payroll_payable_account",
+  "defaulte_salary_account",
   "default_expense_claim_payable_account",
   "section_break_22",
   "cost_center",
@@ -720,12 +721,18 @@
    "fieldtype": "Link",
    "label": "Default Buying Terms",
    "options": "Terms and Conditions"
+  },
+  {
+   "fieldname": "defaulte_salary_account",
+   "fieldtype": "Link",
+   "label": "Default Salary Account",
+   "options": "Account"
   }
  ],
  "icon": "fa fa-building",
  "idx": 1,
  "image_field": "company_logo",
- "modified": "2019-11-22 13:04:47.470768",
+ "modified": "2020-03-05 10:03:48.132115",
  "modified_by": "Administrator",
  "module": "Setup",
  "name": "Company",
